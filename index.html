@@ -593,7 +593,15 @@ async function loadEpub(file){
   description = description.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
 
   const subjectEls = Array.from(opfDoc.getElementsByTagName('dc:subject'));
-  const tags = subjectEls.map(el => el.textContent.trim()).filter(Boolean);
+  const allSubjects = subjectEls.map(el => el.textContent.trim()).filter(Boolean);
+  let rating = '';
+  const tags = [];
+  allSubjects.forEach(s => {
+    const ratingMatch = s.match(/^\s*rating\s*[:\-–]\s*(.+?)\s*$/i);
+    if (ratingMatch && !rating) rating = ratingMatch[1].trim();
+    else tags.push(s);
+  });
+  console.log('EPUB cover editor — parsed subjects:', allSubjects, '→ rating:', rating || '(none found)');
 
   // series (calibre-style meta, or epub3 belongs-to-collection)
   let series = '';
@@ -635,7 +643,7 @@ async function loadEpub(file){
     wordCount: wordCount || 0,
     chapterCurrent: chapterCount || 1,
     chapterTotal: String(chapterCount || 1),
-    rating: '',
+    rating,
     tags,
     summary: description
   };
