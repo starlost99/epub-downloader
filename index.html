@@ -9,14 +9,14 @@
 <title>EPUB Cover Editor</title>
 <style>
   :root{
-    --ink:#2b2320;
-    --paper:#faf6f0;
-    --paper-2:#f1e9df;
-    --line:#e1d4c2;
-    --accent:#8c3a5d;
-    --accent-2:#a6547a;
-    --accent-soft:#f3e3ea;
-    --muted:#7a6f64;
+    --ink:#f2e9ef;
+    --paper:#161016;
+    --paper-2:#211a22;
+    --line:#3a2e3a;
+    --accent:#ff5c96;
+    --accent-2:#ff85b3;
+    --accent-soft:#3a1f2c;
+    --muted:#a897a6;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
@@ -53,7 +53,7 @@
   #dropzone strong{color:var(--ink);}
   #upload-screen .desc{color:var(--muted);font-size:0.9em;line-height:1.5;margin-top:1.2em;}
   #file-input{display:none;}
-  #upload-error{color:#a12;font-size:0.88em;margin-top:1em;display:none;}
+  #upload-error{color:#ff7a90;font-size:0.88em;margin-top:1em;display:none;}
 
   /* ── editor layout ── */
   #editor-screen{display:none;}
@@ -88,7 +88,7 @@
   #cover-canvas{
     width:100%;max-width:280px;aspect-ratio:2/3;height:auto;
     border-radius:0.4em;box-shadow:0 6px 24px rgba(43,35,32,0.22);
-    background:#ccc;
+    background:#2a2230;
   }
   @media(max-width:859px){
     #cover-canvas{cursor:zoom-in;box-shadow:0 4px 16px rgba(43,35,32,0.4);}
@@ -121,11 +121,11 @@
   .form-group .note{font-weight:400;opacity:0.6;font-size:0.85em;}
   input[type="text"],input[type="number"],input[type="url"],textarea,select{
     width:100%;box-sizing:border-box;font-size:0.92em;padding:0.5em 0.6em;
-    border:1px solid var(--line);border-radius:0.4em;background:#fff;color:var(--ink);font-family:inherit;
+    border:1px solid var(--line);border-radius:0.4em;background:var(--paper-2);color:var(--ink);font-family:inherit;
   }
   textarea{resize:vertical;min-height:4.5em;}
   input[type="file"]{width:100%;font-size:0.85em;}
-  input[type="color"]{width:44px;height:32px;padding:2px;border:1px solid var(--line);border-radius:0.4em;cursor:pointer;background:#fff;}
+  input[type="color"]{width:44px;height:32px;padding:2px;border:1px solid var(--line);border-radius:0.4em;cursor:pointer;background:var(--paper-2);}
 
   .row{display:flex;align-items:center;gap:0.6em;margin-bottom:0.6em;}
   .row label:first-child{flex:1;font-size:0.85em;font-weight:400;}
@@ -147,13 +147,13 @@
 
   button.btn{
     cursor:pointer;font-size:0.85em;padding:0.55em 0.9em;border-radius:0.5em;
-    border:1px solid var(--line);background:#fff;color:var(--ink);
+    border:1px solid var(--line);background:var(--paper-2);color:var(--ink);
   }
   button.btn:hover{border-color:var(--accent);}
   button.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
   button.btn.primary:hover{background:var(--accent-2);}
   button.btn.subtle{border:1px dashed var(--line);background:transparent;color:var(--muted);width:100%;text-align:center;}
-  button.btn.subtle:hover{border-color:#a12;color:#a12;}
+  button.btn.subtle:hover{border-color:#ff7a90;color:#ff7a90;}
 
   /* image source tab */
   .thumb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.5em;max-height:260px;overflow-y:auto;margin-bottom:0.5em;}
@@ -169,12 +169,12 @@
 
   /* presets */
   .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5em;margin-bottom:0.9em;}
-  .preset-item{border:1px solid var(--line);border-radius:0.5em;padding:0.4em 0.6em;cursor:pointer;font-size:0.82em;display:flex;align-items:center;gap:0.5em;background:#fff;}
+  .preset-item{border:1px solid var(--line);border-radius:0.5em;padding:0.4em 0.6em;cursor:pointer;font-size:0.82em;display:flex;align-items:center;gap:0.5em;background:var(--paper-2);}
   .preset-item:hover{border-color:var(--accent);}
   .preset-item img{width:28px;height:42px;border-radius:0.2em;flex-shrink:0;}
   .preset-item .name{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .preset-item .del{opacity:0.4;flex-shrink:0;}
-  .preset-item .del:hover{opacity:1;color:#a12;}
+  .preset-item .del:hover{opacity:1;color:#ff7a90;}
   .preset-save-row{display:flex;gap:0.4em;margin-bottom:0.6em;}
   .preset-save-row input{flex:1;}
 
@@ -192,7 +192,7 @@
   #action-bar button{padding:0.7em 0.4em;font-size:0.82em;}
   #status-msg{
     position:fixed;bottom:5.4em;left:50%;transform:translateX(-50%);
-    background:var(--ink);color:#fff;padding:0.5em 1em;border-radius:0.5em;font-size:0.82em;
+    background:#050405;color:var(--ink);padding:0.5em 1em;border-radius:0.5em;font-size:0.82em;border:1px solid var(--line);
     opacity:0;pointer-events:none;transition:opacity .2s;z-index:70;max-width:88vw;text-align:center;
   }
   #status-msg.show{opacity:1;}
