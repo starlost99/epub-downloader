@@ -596,10 +596,12 @@ async function loadEpub(file){
   const allSubjects = subjectEls.map(el => el.textContent.trim()).filter(Boolean);
   let rating = '';
   const tags = [];
+  const KNOWN_RATINGS = ['not rated','general audiences','teen and up audiences','mature','explicit'];
   allSubjects.forEach(s => {
-    const ratingMatch = s.match(/^\s*rating\s*[:\-–]\s*(.+?)\s*$/i);
-    if (ratingMatch && !rating) rating = ratingMatch[1].trim();
-    else tags.push(s);
+    const prefixMatch = s.match(/^\s*rating\s*[:\-–]\s*(.+?)\s*$/i);
+    if (prefixMatch && !rating){ rating = prefixMatch[1].trim(); return; }
+    if (!rating && KNOWN_RATINGS.includes(s.trim().toLowerCase())){ rating = s.trim(); return; }
+    tags.push(s);
   });
   console.log('EPUB cover editor — parsed subjects:', allSubjects, '→ rating:', rating || '(none found)');
 
