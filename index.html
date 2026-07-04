@@ -947,6 +947,11 @@ function addCoverToOpf(opfContent){
   return opfContent;
 }
 function sanitizeFilename(name){ return name.replace(/[^a-z0-9_\-]/gi,'_').substring(0,100); }
+// Lighter sanitizer for user-facing download names: keeps spaces, punctuation,
+// only strips characters that are actually illegal in file names.
+function sanitizeDisplayFilename(name){
+  return (name || 'cover').replace(/[\/\\:*?"<>|]/g, '').replace(/\s+/g,' ').trim().substring(0,150);
+}
 
 async function saveEpub(){
   if (!zip) return;
@@ -981,7 +986,7 @@ async function saveEpub(){
     type:'blob', mimeType:'application/epub+zip', compression:'DEFLATE', compressionOptions:{level:6}
   });
 
-  const fname = `${sanitizeFilename(metadata.title || originalFileName)}.epub`;
+  const fname = `${sanitizeDisplayFilename(metadata.title || originalFileName)}.epub`;
   const link = document.createElement('a');
   link.href = URL.createObjectURL(newEpub);
   link.download = fname;
@@ -1453,7 +1458,7 @@ function init(){
       const canvas = $('#cover-canvas');
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
-      a.download = sanitizeFilename(metadata.title || 'cover') + '_cover.png';
+      a.download = sanitizeDisplayFilename(metadata.title || 'cover') + ' cover.png';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       showStatus('Cover image saved');
     }, 150);
