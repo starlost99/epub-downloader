@@ -13,8 +13,8 @@
     --paper:#161016;
     --paper-2:#211a22;
     --line:#3a2e3a;
-    --accent:#ff5c96;
-    --accent-2:#ff85b3;
+    --accent:#e893b3;
+    --accent-2:#f0aac6;
     --accent-soft:#3a1f2c;
     --muted:#a897a6;
   }
@@ -150,7 +150,7 @@
     border:1px solid var(--line);background:var(--paper-2);color:var(--ink);
   }
   button.btn:hover{border-color:var(--accent);}
-  button.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  button.btn.primary{background:var(--accent);color:#221420;border-color:var(--accent);font-weight:700;}
   button.btn.primary:hover{background:var(--accent-2);}
   button.btn.subtle{border:1px dashed var(--line);background:transparent;color:var(--muted);width:100%;text-align:center;}
   button.btn.subtle:hover{border-color:#ff7a90;color:#ff7a90;}
@@ -166,6 +166,20 @@
   .search-row input{flex:1;}
   .search-status{font-size:0.78em;color:var(--muted);min-height:1.1em;margin-bottom:0.4em;}
   .search-status a{color:var(--accent);}
+
+  .chips-toggle{
+    width:100%;text-align:left;background:none;border:1px dashed var(--line);color:var(--muted);
+    border-radius:0.5em;padding:0.5em 0.7em;font-size:0.82em;cursor:pointer;margin-bottom:0.5em;
+  }
+  .chips-toggle.open{border-color:var(--accent);color:var(--accent);}
+  .chips-drawer{display:none;flex-wrap:wrap;gap:0.4em;margin-bottom:0.7em;max-height:180px;overflow-y:auto;padding:0.2em 0.1em;}
+  .chips-drawer.open{display:flex;}
+  .keyword-chip{
+    background:var(--paper-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:99px;padding:0.35em 0.8em;font-size:0.78em;cursor:pointer;white-space:nowrap;
+  }
+  .keyword-chip:hover{border-color:var(--accent);}
+  .keyword-chip.active{background:var(--accent);border-color:var(--accent);color:#221420;font-weight:600;}
 
   /* presets */
   .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5em;margin-bottom:0.9em;}
@@ -251,6 +265,10 @@
       </div>
 
       <div class="section-header">Search Unsplash</div>
+      <button class="chips-toggle" id="aesthetic-toggle-btn" type="button">✨ Aesthetic presets — tap to pick a vibe</button>
+      <div class="chips-drawer" id="aesthetic-chips"></div>
+      <button class="chips-toggle" id="tags-toggle-btn" type="button" style="display:none">🏷 Search by this fic's tags</button>
+      <div class="chips-drawer" id="tag-chips"></div>
       <div class="search-row">
         <input type="text" id="search-query" placeholder="Search images…">
         <button class="btn" id="search-btn">Go</button>
@@ -510,6 +528,21 @@ let zip = null;              // JSZip instance for the loaded epub
 let opfPath = null, opfDir = '';
 let originalFileName = 'book';
 let searchPage = 1, searchTotalPages = 0;
+
+const AESTHETIC_PRESETS = [
+  'dark academia', 'light academia', 'cottagecore', 'fairycore', 'cozy',
+  'soft aesthetic', 'soft core', 'pastel aesthetic', 'vintage', 'retro', 'minimalist',
+  'moody', 'dreamy', 'ethereal', 'whimsical', 'romantic',
+  'gothic', 'witchy', 'rustic', 'urban', 'industrial',
+  'autumn', 'winter', 'spring', 'summer', 'rainy day',
+  'golden hour', 'sunset', 'sunrise', 'night sky', 'starry night',
+  'snowy', 'foggy', 'stormy', 'candlelight', 'fireplace',
+  'forest', 'beach', 'mountains', 'ocean', 'desert',
+  'city lights', 'cafe', 'library', 'bookshelf', 'garden',
+  'flowers', 'rain on window', 'neon', 'cyberpunk', 'fantasy',
+  'medieval', 'victorian', 'space', 'galaxy', 'noir',
+  'vintage travel', 'cabin in the woods', 'countryside', 'street photography', 'architecture'
+];
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
@@ -1129,6 +1162,50 @@ function populateEmbeddedThumbs(thumbs){
   });
 }
 
+function renderAestheticChips(activePhrase){
+  const container = $('#aesthetic-chips');
+  const toggleBtn = $('#aesthetic-toggle-btn');
+  container.innerHTML = '';
+  AESTHETIC_PRESETS.forEach(preset=>{
+    const chip = document.createElement('button');
+    chip.className = 'keyword-chip' + (preset === activePhrase ? ' active' : '');
+    chip.textContent = preset;
+    chip.type = 'button';
+    chip.addEventListener('click', ()=>{
+      $('#search-query').value = preset;
+      renderAestheticChips(preset);
+      renderTagChips('');
+      toggleBtn.classList.remove('open');
+      container.classList.remove('open');
+      doImageSearch(false);
+    });
+    container.appendChild(chip);
+  });
+  toggleBtn.textContent = activePhrase ? `✨ Vibe: "${activePhrase}"` : '✨ Aesthetic presets — tap to pick a vibe';
+}
+function renderTagChips(activePhrase){
+  const container = $('#tag-chips');
+  const toggleBtn = $('#tags-toggle-btn');
+  container.innerHTML = '';
+  if (!metadata.tags.length){ toggleBtn.style.display='none'; return; }
+  toggleBtn.style.display='block';
+  metadata.tags.forEach(tag=>{
+    const chip = document.createElement('button');
+    chip.className = 'keyword-chip' + (tag === activePhrase ? ' active' : '');
+    chip.textContent = tag;
+    chip.type = 'button';
+    chip.addEventListener('click', ()=>{
+      $('#search-query').value = tag;
+      renderTagChips(tag);
+      renderAestheticChips('');
+      toggleBtn.classList.remove('open');
+      container.classList.remove('open');
+      doImageSearch(false);
+    });
+    container.appendChild(chip);
+  });
+}
+
 async function doImageSearch(append){
   const query = $('#search-query').value.trim();
   if (!query) return;
@@ -1250,6 +1327,7 @@ function initMetaTab(){
   bind('#meta-rating','rating');
   $('#meta-tags').addEventListener('input', e=>{
     metadata.tags = e.target.value.split(',').map(s=>s.trim()).filter(Boolean);
+    renderTagChips('');
     renderCover();
   });
   bind('#meta-summary','summary');
@@ -1426,6 +1504,7 @@ async function handleFile(file){
     const thumbs = await loadEpub(file);
     populateEmbeddedThumbs(thumbs);
     populateMetaFields();
+    renderTagChips('');
     settings = { ...defaultSettings };
     imageSrc = thumbs.length ? thumbs[0].url : null;
     if (imageSrc){
@@ -1482,6 +1561,16 @@ function init(){
   $('#search-btn').addEventListener('click', ()=>doImageSearch(false));
   $('#search-query').addEventListener('keydown', e=>{ if (e.key==='Enter') doImageSearch(false); });
   $('#search-more-btn').addEventListener('click', ()=>{ searchPage++; doImageSearch(true); });
+
+  $('#aesthetic-toggle-btn').addEventListener('click', ()=>{
+    $('#aesthetic-toggle-btn').classList.toggle('open');
+    $('#aesthetic-chips').classList.toggle('open');
+  });
+  $('#tags-toggle-btn').addEventListener('click', ()=>{
+    $('#tags-toggle-btn').classList.toggle('open');
+    $('#tag-chips').classList.toggle('open');
+  });
+  renderAestheticChips('');
 
   $('#btn-randomize').addEventListener('click', ()=>{
     settings.backgroundColor = getRandomColor();
