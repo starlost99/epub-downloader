@@ -69,10 +69,30 @@
   @media(min-width:860px){
     .preview-col{position:sticky;top:70px;flex:0 0 300px;padding:0;}
   }
+  @media(max-width:859px){
+    .preview-col{
+      position:fixed;top:calc(env(safe-area-inset-top) + 64px);right:12px;z-index:45;
+      width:88px;padding:0;transition:all .2s ease;
+    }
+    .preview-col.expanded{
+      top:50%;right:50%;transform:translate(50%,-50%);width:min(74vw,320px);
+    }
+    .preview-col .preview-hint{display:none;}
+    .preview-col.expanded .preview-hint{
+      display:block;font-size:0.72em;margin-top:0.6em;background:rgba(0,0,0,0.65);
+      color:#fff;padding:0.35em 0.6em;border-radius:0.4em;text-align:center;
+    }
+  }
+  #preview-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:44;}
+  #preview-backdrop.show{display:block;}
   #cover-canvas{
     width:100%;max-width:280px;aspect-ratio:2/3;height:auto;
     border-radius:0.4em;box-shadow:0 6px 24px rgba(43,35,32,0.22);
     background:#ccc;
+  }
+  @media(max-width:859px){
+    #cover-canvas{cursor:zoom-in;box-shadow:0 4px 16px rgba(43,35,32,0.4);}
+    .preview-col.expanded #cover-canvas{cursor:zoom-out;}
   }
   .preview-hint{font-size:0.76em;color:var(--muted);margin-top:0.7em;text-align:center;max-width:280px;}
 
@@ -197,6 +217,8 @@
   <p class="desc">Works fully on-device — your file never leaves this page. Upload a saved .epub, pick or design a new cover, and save the updated file back to your device or Files app.</p>
   <p id="upload-error"></p>
 </div>
+
+<div id="preview-backdrop"></div>
 
 <div id="editor-screen">
   <div class="preview-col">
@@ -987,13 +1009,19 @@ async function saveEpub(){
   });
 
   const fname = `${sanitizeDisplayFilename(metadata.title || originalFileName)}.epub`;
+  // Wrap in a File (rather than a bare Blob) so the filename travels with the
+  // object itself — mobile Safari is more likely to respect spaces this way
+  // than when it only reads the anchor's `download` attribute.
+  let downloadObject = newEpub;
+  try { downloadObject = new File([newEpub], fname, { type:'application/epub+zip' }); } catch(e){ /* File() unsupported: fall back to blob */ }
   const link = document.createElement('a');
-  link.href = URL.createObjectURL(newEpub);
+  link.href = URL.createObjectURL(downloadObject);
   link.download = fname;
+  link.rel = 'noopener';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  setTimeout(()=>URL.revokeObjectURL(link.href), 2000);
+  setTimeout(()=>URL.revokeObjectURL(link.href), 4000);
   showStatus('Saved ' + fname);
 }
 
@@ -1456,15 +1484,32 @@ function init(){
     renderCover();
     setTimeout(()=>{
       const canvas = $('#cover-canvas');
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = sanitizeDisplayFilename(metadata.title || 'cover') + ' cover.png';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      showStatus('Cover image saved');
+      const pngName = sanitizeDisplayFilename(metadata.title || 'cover') + ' cover.png';
+      canvas.toBlob(blob=>{
+        let downloadObject = blob;
+        try { downloadObject = new File([blob], pngName, { type:'image/png' }); } catch(e){}
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(downloadObject);
+        a.download = pngName;
+        a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+        showStatus('Cover image saved');
+      }, 'image/png');
     }, 150);
   });
   $('#btn-save').addEventListener('click', ()=>saveEpub().catch(err=>{ console.error(err); showStatus('Error saving EPUB: '+err.message, 4000); }));
   $('#new-file-btn').addEventListener('click', resetToUpload);
+
+  // floating mobile preview: tap to expand/collapse
+  const previewCol = document.querySelector('.preview-col');
+  const backdrop = $('#preview-backdrop');
+  function togglePreviewExpanded(){
+    previewCol.classList.toggle('expanded');
+    backdrop.classList.toggle('show');
+  }
+  $('#cover-canvas').addEventListener('click', ()=>{ if (window.innerWidth <= 859) togglePreviewExpanded(); });
+  backdrop.addEventListener('click', ()=>{ previewCol.classList.remove('expanded'); backdrop.classList.remove('show'); });
 }
 
 init();
