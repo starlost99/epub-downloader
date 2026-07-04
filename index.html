@@ -459,7 +459,7 @@
 </div>
 
 <div id="action-bar">
-  <button class="btn" id="btn-randomize" title="Random image + color">🎲</button>
+  <button class="btn" id="btn-randomize" title="Random background color (removes current image)">🎲</button>
   <button class="btn" id="btn-export-png" title="Export cover as PNG">🖼 PNG</button>
   <button class="btn" id="btn-reset-image" title="Remove image">no img</button>
   <button class="btn primary" id="btn-save">⬇ Save EPUB</button>
@@ -1573,10 +1573,17 @@ function init(){
   renderAestheticChips('');
 
   $('#btn-randomize').addEventListener('click', ()=>{
+    if (settings.bgColorLocked){
+      showStatus('Background color is locked — untick "Lock" first');
+      return;
+    }
+    imageSrc = null; cachedImg = null; cachedImgSrc = null;
+    document.querySelectorAll('#embedded-thumbs img, #search-grid img').forEach(i=>i.classList.remove('selected'));
     settings.backgroundColor = getRandomColor();
     settings.bgColorPicked = settings.backgroundColor;
     $('#bg-color-pick').value = settings.backgroundColor;
     renderCover();
+    showStatus('New random color!');
   });
   $('#btn-export-png').addEventListener('click', async ()=>{
     await ensureFontLoaded(settings.font || 'Georgia');
