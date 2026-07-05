@@ -459,7 +459,7 @@
 </div>
 
 <div id="action-bar">
-  <button class="btn" id="btn-randomize" title="Random background color (removes current image)">🎲</button>
+  <button class="btn" id="btn-randomize" title="Random image (or random background color if no images are loaded)">🎲</button>
   <button class="btn" id="btn-export-png" title="Export cover as PNG">🖼 PNG</button>
   <button class="btn" id="btn-reset-image" title="Remove image">no img</button>
   <button class="btn primary" id="btn-save">⬇ Save EPUB</button>
@@ -583,14 +583,38 @@ function ensureFontLoaded(fontStack){
   if (!gName) return Promise.resolve();
   const familyName = fontStack.split(',')[0].trim().replace(/['"]/g,'');
   if (_loadedFonts.has(gName)) return document.fonts.load(`16px "${familyName}"`).then(()=>{});
+  const existingLink = document.querySelector(`link[href*="${gName.split(':')[0]}"]`);
+  const doLoad = () => document.fonts.load(`700 16px "${familyName}"`)
+    .then(()=>document.fonts.load(`16px "${familyName}"`))
+    .then(()=>{ _loadedFonts.add(gName); });
+  if (existingLink){
+    // Stylesheet already requested (maybe still loading) — wait for it before
+    // asking the browser to load the actual font file, otherwise the
+    // @font-face rule may not exist yet and load() resolves instantly with
+    // nothing actually fetched (font only shows up after the next re-render).
+    return new Promise(resolve=>{
+      const settle = () => doLoad().then(resolve).catch(()=>setTimeout(resolve,300));
+      if (existingLink.dataset.loaded) settle();
+      else existingLink.addEventListener('load', settle, { once:true });
+      // Safety net in case the load event already fired before we attached, or never fires.
+      setTimeout(settle, 1500);
+    });
+  }
   return new Promise(resolve=>{
-    if (!document.querySelector(`link[href*="${gName.split(':')[0]}"]`)){
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = `https://fonts.googleapis.com/css2?family=${gName}&display=swap`;
-      document.head.appendChild(link);
-    }
-    document.fonts.load(`16px "${familyName}"`).then(()=>{ _loadedFonts.add(gName); resolve(); }).catch(()=>setTimeout(resolve,800));
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${gName}&display=swap`;
+    let settled = false;
+    const settle = () => {
+      if (settled) return; settled = true;
+      link.dataset.loaded = '1';
+      doLoad().then(resolve).catch(()=>setTimeout(resolve,300));
+    };
+    link.addEventListener('load', settle, { once:true });
+    link.addEventListener('error', ()=>{ if (!settled){ settled = true; setTimeout(resolve,300); } }, { once:true });
+    document.head.appendChild(link);
+    // Safety net: some browsers/CSPs never fire load for stylesheet links reliably.
+    setTimeout(settle, 1500);
   });
 }
 
@@ -1143,6 +1167,13 @@ function initImageTab(){
   bindRange('#pan-y','#pan-y-val','imagePanY');
 }
 
+function selectGridImage(grid, img, url){
+  grid.querySelectorAll('img').forEach(i=>i.classList.remove('selected'));
+  img.classList.add('selected');
+  imageSrc = url; cachedImg = null; cachedImgSrc = null;
+  renderCover();
+}
+
 function populateEmbeddedThumbs(thumbs){
   const grid = $('#embedded-thumbs');
   const empty = $('#embedded-empty');
@@ -1153,11 +1184,8 @@ function populateEmbeddedThumbs(thumbs){
     const img = document.createElement('img');
     img.src = t.url;
     img.title = t.name;
-    img.addEventListener('click', ()=>{
-      grid.querySelectorAll('img').forEach(i=>i.classList.remove('selected'));
-      img.classList.add('selected');
-      imageSrc = t.url; cachedImg=null; renderCover();
-    });
+    img.dataset.fullSrc = t.url;
+    img.addEventListener('click', ()=>selectGridImage(grid, img, t.url));
     grid.appendChild(img);
   });
 }
@@ -1240,11 +1268,8 @@ async function doImageSearch(append){
       img.src = photo.urls.small;
       img.crossOrigin = 'anonymous';
       img.title = photo.alt_description || ('by ' + (photo.user && photo.user.name || ''));
-      img.addEventListener('click', ()=>{
-        grid.querySelectorAll('img').forEach(i=>i.classList.remove('selected'));
-        img.classList.add('selected');
-        imageSrc = photo.urls.regular; cachedImg=null; renderCover();
-      });
+      img.dataset.fullSrc = photo.urls.regular;
+      img.addEventListener('click', ()=>selectGridImage(grid, img, photo.urls.regular));
       grid.appendChild(img);
     });
     status.textContent = `${grid.querySelectorAll('img').length} results — tap one to use it`;
@@ -1573,12 +1598,25 @@ function init(){
   renderAestheticChips('');
 
   $('#btn-randomize').addEventListener('click', ()=>{
+    const candidates = Array.from(document.querySelectorAll('#embedded-thumbs img, #search-grid img'));
+    if (candidates.length){
+      // Pick a different image than the one currently in use, if possible.
+      let pool = candidates;
+      if (candidates.length > 1){
+        pool = candidates.filter(img => (img.dataset.fullSrc || img.src) !== imageSrc);
+      }
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      const grid = pick.closest('.thumb-grid');
+      selectGridImage(grid, pick, pick.dataset.fullSrc || pick.src);
+      pick.scrollIntoView({ block:'nearest', inline:'nearest' });
+      showStatus('New random image!');
+      return;
+    }
     if (settings.bgColorLocked){
       showStatus('Background color is locked — untick "Lock" first');
       return;
     }
     imageSrc = null; cachedImg = null; cachedImgSrc = null;
-    document.querySelectorAll('#embedded-thumbs img, #search-grid img').forEach(i=>i.classList.remove('selected'));
     settings.backgroundColor = getRandomColor();
     settings.bgColorPicked = settings.backgroundColor;
     $('#bg-color-pick').value = settings.backgroundColor;
